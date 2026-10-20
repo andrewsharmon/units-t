@@ -1,0 +1,25 @@
+"""units-t: unit conversion and dimensional analysis down to fundamental constants."""
+
+from importlib.metadata import PackageNotFoundError, version
+
+from units_t import constants, units
+from units_t.dimensions import Dimension
+from units_t.exceptions import DimensionError, UnitsError
+from units_t.quantity import Quantity
+from units_t.unit import Unit
+
+try:
+    __version__ = version("units-t")
+except PackageNotFoundError:  # pragma: no cover - running from a source tree
+    __version__ = "0.0.0"
+
+__all__ = [
+    "Dimension",
+    "DimensionError",
+    "Quantity",
+    "Unit",
+    "UnitsError",
+    "__version__",
+    "constants",
+    "units",
+]
