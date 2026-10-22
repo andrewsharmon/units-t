@@ -35,6 +35,10 @@ back through the SI base units to the seven constants that have defined the SI s
 - **Zero dependencies.** Pure Python, fully type-annotated (`py.typed`), checked with
   `mypy --strict`.
 
+> **Status: early.** `units-t` is a young project. For mature, full-featured unit
+> handling, see [Related projects](#related-projects). The [Direction](#direction)
+> section describes what this project is exploring that's new.
+
 ## Installation
 
 `units-t` is not on PyPI yet. Install it straight from GitHub:
@@ -237,15 +241,57 @@ src/units_t/
 └── exceptions.py   # UnitsError, DimensionError
 ```
 
-## Roadmap
+## Related projects
+
+`units-t` builds on ideas from some excellent, mature libraries. If you need a
+production-ready units package today, one of these is probably what you want:
+
+- **[Pint](https://github.com/hgrecco/pint)** is the go-to general-purpose units library
+  for Python. It has a readable definitions file, NumPy, pandas and uncertainties
+  integration, and it can even use `Fraction` or `Decimal` values.
+- **[astropy.units](https://docs.astropy.org/en/stable/units/)** and
+  **[astropy.constants](https://docs.astropy.org/en/stable/constants/)** are the
+  standard in astronomy. They offer fast array support, CODATA constants with
+  uncertainties, and "equivalencies" such as wavelength ↔ frequency ↔ energy.
+- **[unyt](https://github.com/yt-project/unyt)**, from the yt project, provides NumPy
+  arrays with units, SymPy-backed unit expressions, and built-in CGS, MKS and Planck
+  unit systems.
+- **[sympy.physics.units](https://docs.sympy.org/latest/modules/physics/units/)** offers
+  exact, symbolic units and dimension systems inside SymPy.
+- **[forallpeople](https://github.com/connorferster/forallpeople)** is a lightweight
+  SI library for engineering calculations, with a great Jupyter display.
+- **[scipy.constants](https://docs.scipy.org/doc/scipy/reference/constants.html)** is a
+  handy table of CODATA values and conversion factors.
+
+`units-t` does not try to out-feature these. It aims to explore a few things none of
+them treat as a core focus.
+
+## Direction
+
+1. **Exactness with provenance.** Conversions are exact by default. The goal is for every
+   factor to be able to explain itself: *"1 eV = e × 1 V, exact, because e is a
+   defining constant"*. Exact values will be kept apart from measured ones, and
+   measured ones will carry their CODATA uncertainty.
+2. **Unit systems built from the constants.** Pick which constants to set to 1
+   (c = ħ = 1, Planck's c = ħ = G = k_B = 1, Hartree atomic units, Gaussian…). The library
+   then builds the whole system and its conversions to SI, instead of shipping a fixed
+   list of systems.
+3. **Dimensional analysis as a first-class tool.** Use Buckingham π to find the
+   dimensionless groups in a problem, check that equations are dimensionally
+   consistent, and find which combinations of constants produce a given dimension.
+4. **Small and dependency-free at the core.** NumPy and other integrations will be
+   optional extras.
+
+### Roadmap
 
 - [ ] Measured CODATA constants (G, mₑ, α, …) with uncertainties
-- [ ] Affine units (°C, °F) and logarithmic units (dB, Np)
+- [ ] Provenance: explain how any conversion factor is derived
 - [ ] Natural, Planck, atomic and Gaussian unit systems derived from the constants
 - [ ] Buckingham π-theorem tools for dimensional analysis
+- [ ] Affine units (°C, °F) and logarithmic units (dB, Np)
 - [ ] Uncertainty propagation through conversions
 - [ ] Parsing unit expressions (`"kg*m/s^2"`)
-- [ ] NumPy array support
+- [ ] Optional NumPy array support
 
 ## Development
 
