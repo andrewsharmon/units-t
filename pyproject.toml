@@ -54,6 +54,8 @@ exclude = ["*.md"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 # Unit symbols like `u.J` look like constants to SIM300 but are not Yoda conditions.
 ignore = ["SIM300"]
+# Unit symbols and physics notation are deliberately non-ASCII.
+allowed-confusables = ["×", "−", "′", "α", "γ", "σ"]
 
 [tool.mypy]
 strict = true

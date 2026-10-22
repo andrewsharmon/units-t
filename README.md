@@ -175,6 +175,57 @@ MW = u.prefixed("mega", u.W)      # any of the 24 SI prefixes, quecto to quetta
 print((5 * MW).to(u.kW))          # 5000.0 kW
 ```
 
+### Esoteric units, uncertainty and sources
+
+`units_t.catalog` holds ~700 units: furlongs, bushels (struck, heaped, imperial, and by
+weight of wheat), hogsheads, Roman feet, Egyptian royal cubits, Planck lengths, parsecs,
+smoots and pinches. They are grouped by quantity or origin (`catalog.length`,
+`catalog.volume`, `catalog.ancient` …), and every one is also available by name:
+
+```python
+from units_t import catalog as uc
+
+print((1 * u.mi).to(uc.furlong))                 # 8.0 fur
+print((1 * uc.bushel).to(u.L))                   # 35.23907016688 L
+print((1 * uc.bushel_of_wheat).to(u.kg))         # 27.2155422 kg
+print((1 * u.m / u.s).to(uc.furlong_per_fortnight))  # 6012.884753042234 fur/ftn
+```
+
+Not every unit has an exact value, and the catalogue says so. Each unit has a
+`certainty`, one of `EXACT`, `EXACT_IRRATIONAL` (defined via π, √ or ln and stored to
+60 digits), `MEASURED` (CODATA constants, astronomical periods), `CONVENTIONAL`
+(competing definitions, like hogsheads or the Scots ell), `ESTIMATED` (archaeological
+reconstructions) or `NOMINAL` (a pinch). Each unit also has a `relative_uncertainty`
+and a tuple of `sources`:
+
+```python
+print(uc.dalton.certainty)                       # Certainty.MEASURED
+print(uc.dalton.relative_uncertainty)            # ≈ 3.1e-10 (CODATA 2022)
+print(uc.royal_cubit.certainty)                  # Certainty.ESTIMATED
+print(uc.pinch.relative_uncertainty)             # None: not quantifiable
+
+print(uc.amphora.conversion(u.L).explain())
+# 1 amphora = 25.934336 L (estimated, relative uncertainty ≈ 0.012)
+#   - Roman foot (power 3): from surviving rulers and buildings: 0.294-0.297 m
+#   sources:
+#     * F. Hultsch, Griechische und römische Metrologie, 2nd ed. (1882)
+#     ...
+```
+
+Uncertainty is tracked as independent *terms* raised to powers, the same way
+dimensions are. Shared terms cancel, so correlations come out right:
+
+```python
+uc.planck_length.relative_uncertainty            # 1.1e-5 (from G, to the power ½)
+(uc.planck_length / uc.planck_time).conversion(uc.speed_of_light).is_exact  # True
+uc.solar_mass.conversion(u.kg).relative_uncertainty      # 2.2e-5 (G again)
+uc.solar_mass.conversion(uc.earth_mass).is_exact         # True: G cancels
+uc.degree.conversion(uc.arcminute).is_exact              # True: π cancels
+```
+
+`uc.inexact()`, `uc.with_certainty(...)` and `uc.search("bushel")` list units.
+`uc.ALL` is the full registry.
+
 ## How it works: down to the constants
 
 ```mermaid
@@ -228,6 +279,29 @@ too.
 
 Any unit can take an SI prefix with `u.prefixed(name, unit)`.
 
+`units_t.catalog` adds about 700 more:
+
+| Module            | Highlights                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| `length`          | furlong, chain, rod, link, US survey units, fathom, cable, league, ell, span, hand, smoot, potrzebie |
+| `area`            | acre, rood, section, township, barn, shed, circular mil, hide, virgate, morgen, arpent              |
+| `volume`          | US and imperial bushels, pecks, gallons and pints; hogshead, tun, firkin; jeroboam to melchizedek   |
+| `mass`            | grain, stone, troy and apothecaries' weights, carat, bushels of wheat, corn, oats …                 |
+| `time`            | fortnight, Julian/Gregorian/tropical years, sidereal day, synodic month, shake, jiffy, sol         |
+| `mechanics`       | knot, Mach, lbf, kgf, poundal, slug, torr, mmHg, inH₂O, psi, poise, stokes                          |
+| `energy`          | erg, five calories, six BTUs, therm, quad, ton of TNT, toe, horsepowers, ton of refrigeration      |
+| `electromagnetic` | gauss, maxwell, oersted, statcoulomb, abampere, debye                                              |
+| `radiation`       | curie, röntgen, rad, rem, banana equivalent dose                                                   |
+| `photometry`      | phot, foot-candle, nit, stilb, lambert, foot-lambert                                               |
+| `angle`           | degree, gradian, turn, NATO mil, compass point, square degree, spat                                |
+| `information`     | bit, byte, kB to QB, KiB to YiB, nat, hartley                                                      |
+| `temperature`     | rankine and °F, °Ré, °Rø, °De, °N *intervals*                                                      |
+| `typography`      | DTP point, TeX point, pica, twip, Didot point, cicero                                              |
+| `astronomical`    | light-year, parsec, IAU nominal solar/planetary units, solar mass, jansky                          |
+| `natural`         | Planck units, Hartree atomic units, dalton, electron mass, x units                                 |
+| `regional`        | Japanese, Chinese, Hong Kong, Russian, French, Prussian, Spanish, Scots, Irish, Indian, Thai       |
+| `ancient`         | Roman, Greek, Egyptian, Babylonian and biblical units; the megalithic yard                         |
+
 ## Project layout
 
 ```
@@ -235,9 +309,13 @@ src/units_t/
 ├── dimensions.py   # Dimension: exponent vectors over the 7 SI base dimensions
 ├── unit.py         # Unit: symbol + exact scale + dimension
 ├── quantity.py     # Quantity: value + unit, with arithmetic and comparison
-├── units.py        # catalogue of SI, prefixed, non-SI and imperial units
+├── units.py        # core SI, prefixed, non-SI and imperial units
+├── catalog/        # ~700 more units, grouped by quantity or origin
+├── provenance.py   # Certainty, UncertaintyTerm, Source, Conversion
+├── sources.py      # citations for unit definitions
 ├── constants.py    # fundamental constants as Quantities
 ├── _defining.py    # exact numerical values of the SI defining constants
+├── _irrational.py  # π, ln 2, ln 10, √ to 60 digits
 └── exceptions.py   # UnitsError, DimensionError
 ```
 
@@ -285,7 +363,8 @@ them treat as a core focus.
 ### Roadmap
 
 - [ ] Measured CODATA constants (G, mₑ, α, …) with uncertainties
-- [ ] Provenance: explain how any conversion factor is derived
+- [x] Provenance: sources, certainty and uncertainty for every catalogued unit
+- [ ] Provenance: explain the full derivation chain of any conversion factor
 - [ ] Natural, Planck, atomic and Gaussian unit systems derived from the constants
 - [ ] Buckingham π-theorem tools for dimensional analysis
 - [ ] Affine units (°C, °F) and logarithmic units (dB, Np)
